@@ -1,7 +1,7 @@
 
-# Marian Tokenizer using Go
+# Marian Tokenizer, Go bindings
 
-## Go Bindings + C++ Core (Static & Dynamic Linking)
+## Go Bindings and C++ Core (Static & Dynamic Linking)
 
 This repository provides a complete, modular tokenizer stack for Marian NMT models using:
 
@@ -13,7 +13,7 @@ The project demonstrates clean interoperability between C++, static/dynamic link
 
 ---
 
-## 📚 Features
+## Features
 
 - Full SentencePiece encode/decode
 - Marian vocab remapping (`vocab.json`)
@@ -25,7 +25,7 @@ The project demonstrates clean interoperability between C++, static/dynamic link
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```bash
 marian_tokenizer_go/
@@ -81,7 +81,7 @@ marian_tokenizer_go/
 
 ---
 
-## 🚀 Build & Setup
+## Build & Setup
 
 ### Clone WITH submodules
 

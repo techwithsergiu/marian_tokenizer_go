@@ -1,0 +1,3 @@
+[submodule "third_party/marian-tokenizer-core"]
+	path = third_party/marian-tokenizer-core
+	url = https://github.com/techwithsergiu/marian-tokenizer-core.git

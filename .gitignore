@@ -3,10 +3,10 @@ third_party/*
 
 models
 
-demo_v1
-demo_v1.exe
-demo_v2
-demo_v2.exe
-demo_v3
-demo_v3.exe
-libmarian_core.dll
+/demo_v1
+/demo_v1.exe
+/demo_v2
+/demo_v2.exe
+/demo_v3
+/demo_v3.exe
+/libmarian_core.dll

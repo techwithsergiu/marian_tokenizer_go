@@ -81,7 +81,7 @@ upload_ru_en_model:
 
 # -------------------------
 # Demo v1
-# Dynamic linking with SentencePiece
+# Static linking with SentencePiece
 # -------------------------
 
 # Build demo_v1
@@ -90,7 +90,7 @@ build_v1:
 
 # Run demo_v1
 run_v1:
-	CGO_ENABLED=1 LD_LIBRARY_PATH=./deps/sentencepiece/$(TARGET)/lib go run ./marian_v1/cmd/demo_v1
+	CGO_ENABLED=1 go run ./marian_v1/cmd/demo_v1
 
 # Build and run
 demo_v1: build_v1 run_v1

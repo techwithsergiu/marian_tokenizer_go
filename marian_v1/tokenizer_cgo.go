@@ -4,7 +4,7 @@ package marian_v1
 
 /*
 #cgo CXXFLAGS: -std=c++17 -I${SRCDIR} -I${SRCDIR}/../deps/sentencepiece/include
-#cgo LDFLAGS: -L${SRCDIR}/../deps/sentencepiece/linux_amd64/lib -lsentencepiece -lstdc++
+#cgo LDFLAGS: -L${SRCDIR}/../deps/sentencepiece/linux_amd64/lib/static -lsentencepiece -lstdc++
 #include <stdlib.h>
 #include "sp_wrapper.h"
 */

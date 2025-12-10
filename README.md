@@ -44,7 +44,7 @@ marian_tokenizer_go/
 ├── third_party/
 │   └── marian-tokenizer-core/      # git submodule (TechWithSergiu marian-tokenizer-core + Google Sentencepiece)
 │
-├── marian_v1/                      # Version 1 - dynamic SP
+├── marian_v1/                      # Version 1 - static SP
 │   ├── sp_wrapper.cc
 │   ├── sp_wrapper.h
 │   ├── tokenizer_cgo.go
@@ -154,10 +154,10 @@ Three tokenizer versions demonstrate different linking modes.
 
 ---
 
-### Version 1 - Pure SentencePiece (Dynamic Linking)
+### Version 1 - Pure SentencePiece (Static Linking)
 
 - Only linux with amd64 is supported
-- Uses SentencePiece dynamically (`libsentencepiece.so`)
+- Uses SentencePiece statically (`libsentencepiece.a`)
 - No Marian C++ core
 - Equivalent to the original Python prototype
 
@@ -171,7 +171,7 @@ or manually:
 
 ```bash
 TARGET=linux_amd64
-CGO_ENABLED=1 LD_LIBRARY_PATH=./deps/sentencepiece/$TARGET/lib go run ./marian_v1/cmd/demo_v1
+CGO_ENABLED=1 go run ./marian_v1/cmd/demo_v1
 ```
 
 Build:
@@ -251,7 +251,7 @@ input_ids + attention_mask
 
 | Version | SP Linking | Marian Tokenizer Core | Type | Purpose |
 |--------|------------|-------------|------|---------|
-| **v1** | dynamic `.so` | none | dynamic | simplest, Python-like |
+| **v1** | static `.a` | none | fully static | simplest, Python-like |
 | **v2** | static `.a` | static compiled-in | fully static | ideal for production |
 | **v3** | static `.a` | dynamic `.so` | shared library | ideal for multi-language reuse |
 

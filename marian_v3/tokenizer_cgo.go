@@ -12,6 +12,8 @@ package marian_v3
 import "C"
 
 import (
+	"errors"
+	"encoding/json"
 	"fmt"
 	"unsafe"
 
@@ -21,13 +23,33 @@ import (
 // Tokenizer is a Marian-core–backed tokenizer implementation.
 // It delegates all logic (SP + vocab + special tokens) to the C++ core.
 type Tokenizer struct {
-	h           C.marian_tok_t
-	padID       int64
-	modelMaxLen int
+	h            C.marian_tok_t
+	config       marian.Config
 }
 
 // Ensure Tokenizer satisfies the common interface.
 var _ marian.Tokenizer = (*Tokenizer)(nil)
+
+// loadConfig retrieves the raw config.json contents from the native tokenizer,
+// unmarshals it into Config, and normalizes the result to apply default values.
+func loadConfig(h C.marian_tok_t) (marian.Config, error) {
+	var cfg marian.Config
+	var n C.size_t
+
+	p := C.marian_tok_get_config_json(h, &n)
+	if p == nil || n == 0 {
+		return cfg, errors.New("marian: failed to get config json from native tokenizer")
+	}
+	defer C.marian_tok_free_buffer(unsafe.Pointer(p))
+
+	b := C.GoBytes(unsafe.Pointer(p), C.int(n))
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return cfg, err
+	}
+
+	cfg.NormalizeConfig()
+	return cfg, nil
+}
 
 // NewTokenizer creates a new Marian-core tokenizer for the given model directory.
 // The directory must contain: config.json, vocab.json, source.spm, target.spm
@@ -40,14 +62,25 @@ func NewTokenizer(modelDir string) (marian.Tokenizer, error) {
 		return nil, fmt.Errorf("marian_tok_new failed")
 	}
 
-	pad := C.marian_tok_get_pad_id(h)
-	maxLen := C.marian_tok_get_model_max_length(h)
+	ok := false
+	defer func() {
+		if !ok {
+			C.marian_tok_free(h)
+		}
+	}()
 
-	return &Tokenizer{
+	cfg, err := loadConfig(h)
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	tok := &Tokenizer{
 		h:           h,
-		padID:       int64(pad),
-		modelMaxLen: int(maxLen),
-	}, nil
+		config:      cfg,
+	}
+
+	ok = true
+	return tok, nil
 }
 
 // Close releases the underlying native Marian tokenizer handle.
@@ -56,6 +89,16 @@ func (t *Tokenizer) Close() {
 		C.marian_tok_free(t.h)
 		t.h = nil
 	}
+}
+
+// Config returns the tokenizer configuration.
+//
+// The configuration is loaded and cached during tokenizer initialization and
+// remains immutable for the lifetime of the tokenizer. The returned pointer
+// refers to the tokenizer's internal cached copy and must not be modified by
+// the caller.
+func (t *Tokenizer) Config() (*marian.Config, error) {
+	return &t.config, nil
 }
 
 // encodeInternal is a small helper that calls marian_tok_encode with configurable addEOS.
@@ -67,7 +110,7 @@ func (t *Tokenizer) encodeInternal(text string, addEOS bool) ([]int64, error) {
 	cText := C.CString(text)
 	defer C.free(unsafe.Pointer(cText))
 
-	maxTokens := t.modelMaxLen
+	maxTokens := t.config.ModelMaxLength
 	if maxTokens <= 0 {
 		return nil, fmt.Errorf("model_max_length is not positive")
 	}
@@ -131,7 +174,7 @@ func (t *Tokenizer) EncodeBatch(texts []string) ([][]int64, [][]int64, error) {
 		}
 	}()
 
-	maxLen := t.modelMaxLen
+	maxLen := t.config.ModelMaxLength
 	if maxLen <= 0 {
 		return nil, nil, fmt.Errorf("model_max_length is not positive")
 	}

@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 #include <cstring>
 
 using json = nlohmann::json;
@@ -33,6 +34,7 @@ struct MarianCore {
     SentencePieceProcessor sp_target;
 
     MarianCoreConfig cfg;
+    std::string cfg_json;
 
     std::unordered_map<std::string, long long> token2id;
     std::vector<std::string> id2token;
@@ -145,6 +147,7 @@ marian_tok_t marian_tok_new(const char* model_dir_cstr) {
         delete core;
         return nullptr;
     }
+    core->cfg_json = cfg_str;
 
     // 2) vocab.json
     std::string vocab_str;
@@ -188,18 +191,26 @@ void marian_tok_free(marian_tok_t handle) {
     delete core;
 }
 
-// Get the PAD token id from the loaded configuration.
-long long marian_tok_get_pad_id(marian_tok_t handle) {
-    if (!handle) return 0;
-    auto* core = reinterpret_cast<MarianCore*>(handle);
-    return core->cfg.pad_id;
+// Free buffers returned by API (json, strings, etc.)
+void marian_tok_free_buffer(void* p) {
+    std::free(p);
 }
 
-// Get the model_max_length from the loaded configuration.
-long long marian_tok_get_model_max_length(marian_tok_t handle) {
-    if (!handle) return 512;
+// Get config.json as raw JSON bytes
+const char* marian_tok_get_config_json(marian_tok_t handle, size_t* out_len) {
+    if (out_len) *out_len = 0;
+    if (!handle) return nullptr;
+
     auto* core = reinterpret_cast<MarianCore*>(handle);
-    return core->cfg.model_max_length;
+    const std::string& s = core->cfg_json;
+    if (s.empty()) return nullptr;
+
+    char* buf = (char*)std::malloc(s.size());
+    if (!buf) return nullptr;
+
+    std::memcpy(buf, s.data(), s.size());
+    if (out_len) *out_len = s.size();
+    return buf;
 }
 
 // Encode UTF-8 text into Marian token ids.

@@ -21,6 +21,10 @@ func NewTokenizer(modelDir string) (*Tokenizer, error) {
 
 func (t *Tokenizer) Close() {}
 
+func (t *Tokenizer) Config() (*marian.Config, error) {
+	return nil, ErrUnsupported
+}
+
 func (t *Tokenizer) Encode(text string, addEOS bool) ([]int64, error) {
 	return nil, ErrUnsupported
 }

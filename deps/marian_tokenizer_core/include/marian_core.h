@@ -2,6 +2,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>  // size_t
 
 #if defined(_WIN32) || defined(_WIN64)
   #if defined(MARIAN_CORE_BUILD)
@@ -35,11 +36,14 @@ MARIAN_API marian_tok_t marian_tok_new(const char* model_dir);
 // Destroy a previously created Marian tokenizer instance.
 MARIAN_API void marian_tok_free(marian_tok_t handle);
 
-// Get the PAD token id from the loaded configuration.
-MARIAN_API long long marian_tok_get_pad_id(marian_tok_t handle);
+// Free buffers returned by API (json, strings, etc.)
+MARIAN_API void marian_tok_free_buffer(void* p);
 
-// Get the model_max_length from the loaded configuration.
-MARIAN_API long long marian_tok_get_model_max_length(marian_tok_t handle);
+// Get config.json as raw JSON bytes
+MARIAN_API const char* marian_tok_get_config_json(
+        marian_tok_t handle,
+        size_t* out_len
+);
 
 // Encode UTF-8 text into Marian token ids.
 //

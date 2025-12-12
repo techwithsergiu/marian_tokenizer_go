@@ -28,14 +28,14 @@ type Tokenizer struct {
 	token2id map[string]int64
 	id2token []string
 
-	eosID int64
-	padID int64
 	unkID int64
 }
 
 // ensure interface implementation
 var _ marian.Tokenizer = (*Tokenizer)(nil)
 
+// loadConfig loads config.json from disk, unmarshals it into Config,
+// and normalizes the result to apply default values.
 func loadConfig(path string) (marian.Config, error) {
 	var cfg marian.Config
 	b, err := os.ReadFile(path)
@@ -45,19 +45,9 @@ func loadConfig(path string) (marian.Config, error) {
 	if err := json.Unmarshal(b, &cfg); err != nil {
 		return cfg, err
 	}
-	if cfg.DecoderVocabSize == 0 {
-		cfg.DecoderVocabSize = cfg.VocabSize
-	}
-	if cfg.ModelMaxLength == 0 {
-		if cfg.MaxLength > 0 {
-			cfg.ModelMaxLength = cfg.MaxLength
-		} else {
-			cfg.ModelMaxLength = 512
-		}
-	}
-	if cfg.BosTokenID == 0 {
-		cfg.BosTokenID = cfg.EosTokenID
-	}
+
+	cfg.NormalizeConfig()
+
 	return cfg, nil
 }
 
@@ -127,8 +117,6 @@ func NewTokenizer(modelDir string) (marian.Tokenizer, error) {
 		config:   cfg,
 		token2id: token2id,
 		id2token: id2token,
-		eosID:    cfg.EosTokenID,
-		padID:    cfg.PadTokenID,
 		unkID:    unkID,
 	}, nil
 }
@@ -143,6 +131,16 @@ func (t *Tokenizer) Close() {
 		C.sp_free(t.spTarget)
 		t.spTarget = nil
 	}
+}
+
+// Config returns the tokenizer configuration.
+//
+// The configuration is loaded and cached during tokenizer initialization and
+// remains immutable for the lifetime of the tokenizer. The returned pointer
+// refers to the tokenizer's internal cached copy and must not be modified by
+// the caller.
+func (t *Tokenizer) Config() (*marian.Config, error) {
+	return &t.config, nil
 }
 
 // encodeInternal is the internal implementation: SP encode -> pieces -> vocab ids.
@@ -191,7 +189,7 @@ func (t *Tokenizer) encodeInternal(text string, addEOS bool) ([]int64, error) {
 	}
 
 	if addEOS {
-		ids = append(ids, t.eosID)
+		ids = append(ids, t.config.EosTokenID)
 	}
 
 	return ids, nil
@@ -235,7 +233,7 @@ func (t *Tokenizer) EncodeBatch(texts []string) ([][]int64, [][]int64, error) {
 				inputIDs[i][j] = seq[j]
 				attn[i][j] = 1
 			} else {
-				inputIDs[i][j] = t.padID
+				inputIDs[i][j] = t.config.PadTokenID
 				attn[i][j] = 0
 			}
 		}
@@ -250,7 +248,7 @@ func (t *Tokenizer) Decode(ids []int64, skipSpecial bool) (string, error) {
 	if skipSpecial {
 		filtered := make([]int64, 0, len(ids))
 		for _, id := range ids {
-			if id == t.eosID || id == t.padID || id == t.unkID {
+			if id == t.config.EosTokenID || id == t.config.PadTokenID || id == t.unkID {
 				continue
 			}
 			filtered = append(filtered, id)
